@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Qdrant Vector Database (only needed for self-hosted mode)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: memorytutor-qdrant
+    ports:
+      - "6333:6333"  # REST API
+      - "6334:6334"  # gRPC API (optional)
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - memorytutor-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # MemoryTutor Application
+  memorytutor:
+    build: .
+    container_name: memorytutor-app
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    environment:
+      # Pass all environment variables from .env
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MEM0_MODE=${MEM0_MODE:-self-hosted}
+      - MEM0_API_KEY=${MEM0_API_KEY:-}
+      - USE_DOCKER_QDRANT=true
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_COLLECTION_NAME=${QDRANT_COLLECTION_NAME:-language_tutor_session}
+      - TUTOR_LANGUAGE=${TUTOR_LANGUAGE:-Spanish}
+      - USER_ID=${USER_ID:-default_student}
+    networks:
+      - memorytutor-network
+    stdin_open: true  # Required for interactive input
+    tty: true         # Required for interactive terminal
+
+networks:
+  memorytutor-network:
+    driver: bridge
+
+volumes:
+  qdrant_data:
+    driver: local
