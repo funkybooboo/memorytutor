@@ -1,6 +1,6 @@
 # Core Dependencies
 python-dotenv==1.0.1
-openai==1.58.1
+openai>=1.90.0
 mem0ai==1.0.2
 
 # Vector Store (required for self-hosted mode)
